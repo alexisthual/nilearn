@@ -10,6 +10,8 @@
 nilearn
 =======
 
+Test.
+
 Nilearn is a Python module for fast and easy statistical learning on
 NeuroImaging data.
 
