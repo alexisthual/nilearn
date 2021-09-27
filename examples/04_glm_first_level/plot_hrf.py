@@ -140,10 +140,13 @@ def mion_time_derivative(
 # Define response function models to be displayed:
 
 rf_models = [
-    ("spm + derivative + dispersion", "SPM HRF"),
-    ("glover + derivative + dispersion", "Glover HRF"),
-    (mion_response_function, "Mion RF"),
-    (mion_time_derivative, "Mion RF derivative"),
+    ("spm + derivative + dispersion", "SPM HRF", None),
+    ("glover + derivative + dispersion", "Glover HRF", None),
+    (
+        [mion_response_function, mion_time_derivative],
+        "Mion RF + derivative",
+        ["main", "main_derivative"],
+    ),
 ]
 
 #########################################################################
@@ -157,15 +160,14 @@ oversampling = 16
 time_length = 50.0
 
 fig = plt.figure(figsize=(9, 4))
-for i, (rf_model, model_title) in enumerate(rf_models):
+for i, (rf_model, model_title, labels) in enumerate(rf_models):
     # compute signal of interest by convolution
-    signal, labels = compute_regressor(
+    signal, _labels = compute_regressor(
         exp_condition,
         rf_model,
         frame_times,
         con_id="main",
         oversampling=oversampling,
-        time_length=time_length,
     )
 
     # plot signal
@@ -175,7 +177,11 @@ for i, (rf_model, model_title) in enumerate(rf_models):
         plt.plot(
             frame_times,
             signal.T[j],
-            label=labels[j] if labels is not None else None,
+            label=(
+                labels[j]
+                if labels is not None
+                else (_labels[j] if _labels is not None else None)
+            ),
         )
     plt.xlabel("time (s)")
     plt.legend(loc=1)
