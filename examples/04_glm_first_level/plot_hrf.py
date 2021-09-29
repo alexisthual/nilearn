@@ -36,7 +36,8 @@ This example requires matplotlib and scipy.
 
 import numpy as np
 
-frame_times = np.linspace(0, 30, 61)
+time_length = 30.0
+frame_times = np.linspace(0, time_length, 61)
 onset, amplitude, duration = 0.0, 1.0, 1.0
 exp_condition = np.array((onset, duration, amplitude)).reshape(3, 1)
 
@@ -46,34 +47,21 @@ stim = np.zeros_like(frame_times)
 stim[(frame_times > onset) * (frame_times <= onset + duration)] = amplitude
 
 #########################################################################
-# Define custom response functions for MION:
+# Define custom response functions for MION. Custom response
+# functions should at least take tr and oversampling as arguments:
 from scipy.stats import gamma
 
 
-def mion_response_function(
-    tr,
-    oversampling=16,
-    time_length=70.0,
-    onset=0.0,
-    delay=1.55,
-    dispersion=5.5,
-):
+def mion_response_function(tr, oversampling=16, onset=0.0):
     """Implementation of the MION response function model.
-
     Parameters
     ----------
     tr: float
         scan repeat time, in seconds
     oversampling: int, optional
         temporal oversampling factor
-    time_length: float, optional
-        hrf kernel length, in seconds
     onset: float, optional
         hrf onset time, in seconds
-    delay: float, optional
-        delay parameter of the hrf (in s.)
-    dispersion: float, optional
-        dispersion parameter for the gamma function
 
     Returns
     -------
@@ -86,6 +74,10 @@ def mion_response_function(
     )
     time_stamps -= onset
 
+    # parameters of the gamma function
+    delay = 1.55
+    dispersion = 5.5
+
     response_function = gamma.pdf(time_stamps, delay, loc=0, scale=dispersion)
     response_function /= response_function.sum()
     response_function *= -1
@@ -93,30 +85,14 @@ def mion_response_function(
     return response_function
 
 
-def mion_time_derivative(
-    tr,
-    oversampling=16.0,
-    time_length=70.0,
-    onset=0.0,
-    delay=1.55,
-    dispersion=5.5,
-):
+def mion_time_derivative(tr, oversampling=16.0):
     """Implementation of the MION time derivative response function model.
-
     Parameters
     ----------
     tr: float
         scan repeat time, in seconds
     oversampling: int, optional
         temporal oversampling factor, optional
-    time_length: float, optional
-        hrf kernel length, in seconds
-    onset: float, optional
-        onset of the response in seconds
-    delay: float, optional
-        delay parameter of the hrf (in s.)
-    dispersion: float, optional
-        dispersion parameter for the gamma function
 
     Returns
     -------
@@ -125,12 +101,8 @@ def mion_time_derivative(
     """
     do = 0.1
     drf = (
-        mion_response_function(
-            tr, oversampling, time_length, onset, delay, dispersion
-        )
-        - mion_response_function(
-            tr, oversampling, time_length, onset + do, delay, dispersion
-        )
+        mion_response_function(tr, oversampling)
+        - mion_response_function(tr, oversampling, do)
     ) / do
 
     return drf
@@ -157,7 +129,6 @@ import matplotlib.pyplot as plt
 from nilearn.glm.first_level import compute_regressor
 
 oversampling = 16
-time_length = 50.0
 
 fig = plt.figure(figsize=(9, 4))
 for i, (rf_model, model_title, labels) in enumerate(rf_models):
